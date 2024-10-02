@@ -1,5 +1,9 @@
 # randfile
+
 Generates a file index and randomly chooses a file for STDOUT.
+That can be useful for randomly choosing files and passing them
+to another application without having to worry about paths and
+filenames.
 
 The filename of the index is by default ```files.txt```.
 This can be changed by setting this environment variable:
