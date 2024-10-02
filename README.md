@@ -11,3 +11,7 @@ The filename of the index is currently files.txt and cannot be changed.
 ```
 ./randfile
 ```
+# pass one file to mpv
+```
+./randfile -p | xargs mpv
+```
