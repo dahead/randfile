@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <fcntl.h>
 
 #define MAX_PATH 1024
 #define MAX_FILTERS 10
@@ -78,6 +79,30 @@ void list_files(const char *base_path, FILE *output_file, char *filters[], int f
     closedir(dir);
 }
 
+int get_random_number(int min, int max) {
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0) {
+        // use c default random
+        srand(time(NULL));
+        int random_value = rand() % max;
+        if (random_value > 0)
+            return random_value;
+
+        perror("Failed to open /dev/urandom");
+        return -1;
+    }
+
+    unsigned int random_value;
+    if (read(fd, &random_value, sizeof(random_value)) != sizeof(random_value)) {
+        perror("Failed to read from /dev/urandom");
+        close(fd);
+        return -1;
+    }
+    close(fd);
+
+    return (random_value % (max - min + 1)) + min;
+}
+
 void print_random_file(int use_quotes) {
     FILE *file = fopen(output_filename, "r");
     if (file == NULL) {
@@ -93,8 +118,10 @@ void print_random_file(int use_quotes) {
     rewind(file);
 
     if (count > 0) {
-        srand(time(NULL));
-        size_t random_index = rand() % count;
+        // srand(time(NULL));
+        // size_t random_index = rand() % count;
+        int random_index = get_random_number(0, count);
+
         for (size_t i = 0; i <= random_index; i++) {
             fgets(buffer, sizeof(buffer), file);
         }
@@ -142,7 +169,7 @@ int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     int use_quotes = 0;
     init_output_filename();
-
+    
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
             use_quotes = 1;
@@ -152,12 +179,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //if (argc >= 2 && strcmp(argv[1], "scan") == 0) {
-    //    process_directory(argc, argv);
-    //    return EXIT_SUCCESS;
-    //}
-    
-    // process directory?
     if (argc >= 2) {
         struct stat statbuf;
         if (stat(argv[1], &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
