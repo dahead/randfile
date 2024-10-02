@@ -1,4 +1,3 @@
-//
 // randfile (c) 2024 by dahead (dahead@mailbox.org)
 //
 // About:
@@ -7,11 +6,13 @@
 // extension. 
 //
 // This is done by calling it: 
-// $ ./randfile /path/to/scan <file-filter>
+// $ ./randfile scan /path/to/scan <file-filter>
 //
 // After that randfile writes one random entry of
 // that index file to STDOUT.
 // $ ./randfile
+// this adds quotation marks around the output
+// $ ./randfile -p 
 //
 
 #include <stdio.h>
@@ -27,9 +28,20 @@
 #define MAX_FILTERS 10
 #define BUFFER_SIZE 2048
 
+#define DEFAULT_FILENAME "files.txt"
+char *output_filename;
+
+void init_output_filename() {
+    char *env_filename = getenv("RANDFILE_FILENAME");
+    if (env_filename != NULL) {
+        output_filename = env_filename;
+    } else {
+        output_filename = DEFAULT_FILENAME;
+    }
+}
+
 int matches_filter(const char *filename, char *filters[], int filter_count) {
     if (filter_count == 0) return 1; 
-
     for (int i = 0; i < filter_count; i++) {
         if (strstr(filename, filters[i]) != NULL) {
             return 1;
@@ -67,7 +79,7 @@ void list_files(const char *base_path, FILE *output_file, char *filters[], int f
 }
 
 void print_random_file(int use_quotes) {
-    FILE *file = fopen("files.txt", "r");
+    FILE *file = fopen(output_filename, "r");
     if (file == NULL) {
         return; 
     }
@@ -116,7 +128,7 @@ void process_directory(int argc, char *argv[]) {
         }
     }
 
-    FILE *output_file = fopen("files.txt", "w");
+    FILE *output_file = fopen(output_filename, "w");
     if (output_file == NULL) {
         perror("fopen");
         exit(EXIT_FAILURE);
@@ -129,6 +141,7 @@ void process_directory(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     int use_quotes = 0;
+    init_output_filename();
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
@@ -139,11 +152,21 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //if (argc >= 2) {
+    //if (argc >= 2 && strcmp(argv[1], "scan") == 0) {
     //    process_directory(argc, argv);
     //    return EXIT_SUCCESS;
-    //} 
+    //}
+    
+    // process directory?
+    if (argc >= 2) {
+        struct stat statbuf;
+        if (stat(argv[1], &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
+            process_directory(argc, argv);
+            return EXIT_SUCCESS;
+        }
+    }
 
     print_random_file(use_quotes);
     return EXIT_SUCCESS;
 }
+
